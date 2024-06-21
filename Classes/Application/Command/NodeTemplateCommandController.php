@@ -8,9 +8,18 @@ use Flowpack\NodeTemplates\Domain\ErrorHandling\ProcessingErrors;
 use Flowpack\NodeTemplates\Domain\NodeCreation\NodeCreationService;
 use Flowpack\NodeTemplates\Domain\NodeTemplateDumper\NodeTemplateDumper;
 use Flowpack\NodeTemplates\Domain\TemplateConfiguration\TemplateConfigurationProcessor;
+use Neos\ContentRepository\Core\Feature\NodeCreation\Command\CreateNodeAggregateWithNode;
+use Neos\ContentRepository\Core\Projection\ContentGraph\AbsoluteNodePath;
+use Neos\ContentRepository\Core\Projection\ContentGraph\NodePath;
+use Neos\ContentRepository\Core\Projection\ContentGraph\VisibilityConstraints;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
+use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
+use Neos\ContentRepositoryRegistry\ContentRepositoryRegistry;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Cli\CommandController;
-use Neos\Neos\Domain\Service\ContentContext;
+use Neos\Neos\Domain\Repository\SiteRepository;
+use Neos\Neos\Domain\Service\NodeTypeNameFactory;
+use Neos\Neos\Ui\Domain\NodeCreation\NodeCreationCommands;
 
 class NodeTemplateCommandController extends CommandController
 {
@@ -32,6 +41,17 @@ class NodeTemplateCommandController extends CommandController
      */
     protected $templateConfigurationProcessor;
 
+    /**
+     * @var SiteRepository
+     * @Flow\Inject
+     */
+    protected $siteRepository;
+
+    /**
+     * @var ContentRepositoryRegistry
+     * @Flow\Inject
+     */
+    protected $contentRepositoryRegistry;
 
     /**
      * Dump the node tree structure into a NodeTemplate YAML structure.
@@ -43,8 +63,8 @@ class NodeTemplateCommandController extends CommandController
      */
     public function createFromNodeSubtreeCommand(string $startingNodeId, string $workspaceName = 'live'): void
     {
-        // TODO re-enable
         throw new \BadMethodCallException('Not implemented.');
+        /*
         $subgraph = $this->contextFactory->create([
             'workspaceName' => $workspaceName
         ]);
@@ -53,6 +73,7 @@ class NodeTemplateCommandController extends CommandController
             throw new \InvalidArgumentException("Node $startingNodeId doesnt exist in workspace $workspaceName.");
         }
         echo $this->nodeTemplateDumper->createNodeTemplateYamlDumpFromSubtree($node);
+        */
     }
 
     /**
@@ -62,10 +83,21 @@ class NodeTemplateCommandController extends CommandController
      * We process and build all configured NodeType templates. No nodes will be created in the Content Repository.
      *
      */
-    public function validateCommand(): void
+    public function validateCommand(?string $site = null): void
     {
-        // TODO re-enable
-        throw new \BadMethodCallException('Not implemented.');
+        $siteInstance = $site
+            ? $this->siteRepository->findOneByNodeName($site)
+            : $this->siteRepository->findDefault();
+
+        if (!$siteInstance) {
+            $this->outputLine(sprintf('<error>Site "%s" does not exist.</error>', $site));
+            $this->quit(2);
+        }
+
+        $siteConfiguration = $siteInstance->getConfiguration();
+
+        $contentRepository = $this->contentRepositoryRegistry->get($siteConfiguration->contentRepositoryId);
+
         $templatesChecked = 0;
         /**
          * nodeTypeNames as index
@@ -73,15 +105,29 @@ class NodeTemplateCommandController extends CommandController
          */
         $faultyNodeTypeTemplates = [];
 
-        foreach ($this->nodeTypeManager->getNodeTypes(false) as $nodeType) {
+        // default context? https://github.com/neos/neos-development-collection/issues/5113
+        $subgraph = $contentRepository->getContentGraph(WorkspaceName::forLive())->getSubgraph(
+            $siteConfiguration->defaultDimensionSpacePoint,
+            VisibilityConstraints::frontend()
+        );
+
+        $siteNode = $subgraph->findNodeByAbsolutePath(AbsoluteNodePath::fromRootNodeTypeNameAndRelativePath(
+            NodeTypeNameFactory::forSites(),
+            NodePath::fromNodeNames($siteInstance->getNodeName()->toNodeName())
+        ));
+
+        if (!$siteNode) {
+            $this->outputLine(sprintf('<error>Could not resolve site node for site "%s".</error>', $siteInstance->getNodeName()->value));
+            $this->quit(3);
+        }
+
+        foreach ($contentRepository->getNodeTypeManager()->getNodeTypes(false) as $nodeType) {
             $templateConfiguration = $nodeType->getOptions()['template'] ?? null;
             if (!$templateConfiguration) {
                 continue;
             }
             $processingErrors = ProcessingErrors::create();
 
-            /** @var ContentContext $subgraph */
-            $subgraph = $this->contextFactory->create();
 
             $observableEmptyData = new class ([]) extends \ArrayObject
             {
@@ -93,26 +139,36 @@ class NodeTemplateCommandController extends CommandController
                 }
             };
 
-            $siteNode = $subgraph->getCurrentSiteNode();
-
             $template = $this->templateConfigurationProcessor->processTemplateConfiguration(
                 $templateConfiguration,
                 [
                     'data' => $observableEmptyData,
-                    'triggeringNode' => $siteNode, // @deprecated
                     'site' => $siteNode,
                     'parentNode' => $siteNode,
                 ],
                 $processingErrors
             );
 
-            $this->nodeCreationService->createMutatorsForRootTemplate($template, $nodeType, $this->nodeTypeManager, $subgraph, $processingErrors);
+            $fakeNodeCreationCommands = NodeCreationCommands::fromFirstCommand(
+                CreateNodeAggregateWithNode::create(
+                    $siteNode->workspaceName,
+                    NodeAggregateId::create(),
+                    $nodeType->name,
+                    $siteNode->originDimensionSpacePoint,
+                    $siteNode->aggregateId
+                ),
+                $contentRepository->getNodeTypeManager()
+            );
+
+            $this->nodeCreationService->apply($template, $fakeNodeCreationCommands, $contentRepository->getNodeTypeManager(), $subgraph, $nodeType, $processingErrors);
 
             if ($processingErrors->hasError()) {
-                $faultyNodeTypeTemplates[$nodeType->getName()] = ['processingErrors' => $processingErrors, 'dataWasAccessed' => $observableEmptyData->dataWasAccessed];
+                $faultyNodeTypeTemplates[$nodeType->name->value] = ['processingErrors' => $processingErrors, 'dataWasAccessed' => $observableEmptyData->dataWasAccessed];
             }
             $templatesChecked++;
         }
+
+        $this->output(sprintf('<comment>Content repository "%s": </comment>', $contentRepository->id->value));
 
         if ($templatesChecked === 0) {
             $this->outputLine('<comment>No NodeType templates found.</comment>');

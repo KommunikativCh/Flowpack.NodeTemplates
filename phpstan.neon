@@ -3,5 +3,4 @@ parameters:
     paths:
         - Classes
     excludePaths:
-        - Classes/Application/Command/NodeTemplateCommandController.php
         - Classes/Domain/NodeTemplateDumper/NodeTemplateDumper.php

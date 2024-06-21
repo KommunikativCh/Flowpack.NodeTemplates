@@ -8,3 +8,12 @@ Neos:
           factoryObjectName: Neos\ContentRepository\BehavioralTests\TestSuite\Behavior\FakeUserIdProviderFactory
         clock:
           factoryObjectName: Neos\ContentRepository\BehavioralTests\TestSuite\Behavior\FakeClockFactory
+
+  Neos:
+    sites:
+      'node-templates-site':
+        uriPathSuffix: '.html'
+        contentRepository: node_templates
+        contentDimensions:
+          resolver:
+            factoryClassName: Neos\Neos\FrontendRouting\DimensionResolution\Resolver\AutoUriPathResolverFactory

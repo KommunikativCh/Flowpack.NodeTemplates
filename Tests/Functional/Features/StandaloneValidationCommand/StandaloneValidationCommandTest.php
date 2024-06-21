@@ -5,53 +5,56 @@ declare(strict_types=1);
 namespace Flowpack\NodeTemplates\Tests\Functional\Features\StandaloneValidationCommand;
 
 use Flowpack\NodeTemplates\Application\Command\NodeTemplateCommandController;
-use Flowpack\NodeTemplates\Domain\NodeTemplateDumper\NodeTemplateDumper;
-use Flowpack\NodeTemplates\Domain\Template\RootTemplate;
+use Flowpack\NodeTemplates\Tests\Functional\ContentRepositoryTestTrait;
 use Flowpack\NodeTemplates\Tests\Functional\FakeNodeTypeManagerTrait;
 use Flowpack\NodeTemplates\Tests\Functional\SnapshotTrait;
-use Neos\ContentRepository\Domain\Model\NodeInterface;
-use Neos\ContentRepository\Domain\Model\Workspace;
-use Neos\ContentRepository\Domain\Repository\ContentDimensionRepository;
-use Neos\ContentRepository\Domain\Repository\WorkspaceRepository;
-use Neos\ContentRepository\Domain\Service\ContextFactoryInterface;
-use Neos\ContentRepository\Domain\Service\NodeTypeManager;
+use Neos\ContentRepository\Core\DimensionSpace\DimensionSpacePoint;
+use Neos\ContentRepository\Core\DimensionSpace\OriginDimensionSpacePoint;
+use Neos\ContentRepository\Core\Feature\NodeCreation\Command\CreateNodeAggregateWithNode;
+use Neos\ContentRepository\Core\Feature\RootNodeCreation\Command\CreateRootNodeAggregateWithNode;
+use Neos\ContentRepository\Core\Feature\WorkspaceCreation\Command\CreateRootWorkspace;
+use Neos\ContentRepository\Core\NodeType\NodeTypeManager;
+use Neos\ContentRepository\Core\NodeType\NodeTypeName;
+use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
+use Neos\ContentRepository\Core\SharedModel\Node\NodeName;
+use Neos\ContentRepository\Core\SharedModel\User\UserId;
+use Neos\ContentRepository\Core\SharedModel\Workspace\ContentStreamId;
+use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceDescription;
+use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
+use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceTitle;
+use Neos\ContentRepository\TestSuite\Behavior\Features\Bootstrap\Helpers\FakeUserIdProvider;
 use Neos\Flow\Cli\Exception\StopCommandException;
 use Neos\Flow\Cli\Response;
-use Neos\Flow\Tests\FunctionalTestCase;
+use Neos\Flow\Core\Bootstrap;
+use Neos\Flow\ObjectManagement\ObjectManagerInterface;
 use Neos\Neos\Domain\Model\Site;
 use Neos\Neos\Domain\Repository\SiteRepository;
 use Neos\Neos\Ui\Domain\Model\FeedbackCollection;
 use Neos\Utility\ObjectAccess;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\BufferedOutput;
 
-final class StandaloneValidationCommandTest extends FunctionalTestCase
+final class StandaloneValidationCommandTest extends TestCase // we don't use Flows functional test case as it would reset the database afterwards
 {
     use SnapshotTrait;
+    use ContentRepositoryTestTrait;
     use FakeNodeTypeManagerTrait;
 
-    protected static $testablePersistenceEnabled = true;
-
-    private ContextFactoryInterface $contextFactory;
-
-    protected NodeInterface $homePageNode;
-
-    protected NodeInterface $homePageMainContentCollectionNode;
-
-    private NodeTemplateDumper $nodeTemplateDumper;
-
-    private RootTemplate $lastCreatedRootTemplate;
+    /**
+     * Matching configuration in Neos.Neos.sites.node-templates-site
+     */
+    private const TEST_SITE_NAME = 'node-templates-site';
 
     private NodeTypeManager $nodeTypeManager;
 
     private string $fixturesDir;
 
+    protected ObjectManagerInterface $objectManager;
+
     public function setUp(): void
     {
-        parent::setUp();
-
-        $this->nodeTypeManager = $this->objectManager->get(NodeTypeManager::class);
-
-        $this->loadFakeNodeTypes();
+        $this->objectManager = Bootstrap::$staticObjectManager;
 
         $this->setupContentRepository();
 
@@ -61,39 +64,47 @@ final class StandaloneValidationCommandTest extends FunctionalTestCase
 
     public function tearDown(): void
     {
-        parent::tearDown();
-        $this->inject($this->contextFactory, 'contextInstances', []);
         $this->objectManager->get(FeedbackCollection::class)->reset();
-        $this->objectManager->forgetInstance(ContentDimensionRepository::class);
-        $this->objectManager->forgetInstance(NodeTypeManager::class);
     }
 
     private function setupContentRepository(): void
     {
-        // Create an environment to create nodes.
-        $this->objectManager->get(ContentDimensionRepository::class)->setDimensionsConfiguration([]);
+        $this->initCleanContentRepository(ContentRepositoryId::fromString('node_templates'));
 
-        $liveWorkspace = new Workspace('live');
-        $workspaceRepository = $this->objectManager->get(WorkspaceRepository::class);
-        $workspaceRepository->add($liveWorkspace);
+        $this->nodeTypeManager = $this->contentRepository->getNodeTypeManager();
+        $this->loadFakeNodeTypes();
 
-        $testSite = new Site('test-site');
-        $testSite->setSiteResourcesPackageKey('Test.Site');
-        $siteRepository = $this->objectManager->get(SiteRepository::class);
-        $siteRepository->add($testSite);
-
-        $this->persistenceManager->persistAll();
-        $this->contextFactory = $this->objectManager->get(ContextFactoryInterface::class);
-        $subgraph = $this->contextFactory->create(['workspaceName' => 'live']);
-
-        $rootNode = $subgraph->getRootNode();
-
-        $sitesRootNode = $rootNode->createNode('sites');
-        $testSiteNode = $sitesRootNode->createNode('test-site');
-        $this->homePageNode = $testSiteNode->createNode(
-            'homepage',
-            $this->nodeTypeManager->getNodeType('Flowpack.NodeTemplates:Document.HomePage')
+        $liveWorkspaceCommand = CreateRootWorkspace::create(
+            $workspaceName = WorkspaceName::fromString('live'),
+            new WorkspaceTitle('Live'),
+            new WorkspaceDescription('The live workspace'),
+            ContentStreamId::fromString('cs-identifier')
         );
+
+        $this->contentRepository->handle($liveWorkspaceCommand);
+
+        FakeUserIdProvider::setUserId(UserId::fromString('initiating-user-identifier'));
+
+        $rootNodeCommand = CreateRootNodeAggregateWithNode::create(
+            $workspaceName,
+            $sitesId = NodeAggregateId::fromString('sites'),
+            NodeTypeName::fromString('Neos.Neos:Sites')
+        );
+
+        $this->contentRepository->handle($rootNodeCommand);
+
+        $siteNodeCommand = CreateNodeAggregateWithNode::create(
+            $workspaceName,
+            NodeAggregateId::fromString('test-site'),
+            NodeTypeName::fromString('Flowpack.NodeTemplates:Document.HomePage'),
+            OriginDimensionSpacePoint::fromDimensionSpacePoint(
+                DimensionSpacePoint::fromArray([])
+            ),
+            $sitesId,
+            nodeName: NodeName::fromString(self::TEST_SITE_NAME)
+        );
+
+        $this->contentRepository->handle($siteNodeCommand);
     }
 
     /** @test */
@@ -101,11 +112,24 @@ final class StandaloneValidationCommandTest extends FunctionalTestCase
     {
         $commandController = $this->objectManager->get(NodeTemplateCommandController::class);
 
+        $testSite = new Site(self::TEST_SITE_NAME);
+        $testSite->setSiteResourcesPackageKey('Test.Site');
+
+        $siteRepositoryMock = $this->getMockBuilder(SiteRepository::class)->disableOriginalConstructor()->getMock();
+        $siteRepositoryMock->expects(self::once())->method('findOneByNodeName')->willReturnCallback(function (string $nodeName) use ($testSite) {
+            return $nodeName === $testSite->getNodeName()->value
+                ? $testSite
+                : null;
+        });
+
+        ObjectAccess::setProperty($commandController, 'siteRepository', $siteRepositoryMock, true);
+
+
         ObjectAccess::setProperty($commandController, 'response', $cliResponse = new Response(), true);
         ObjectAccess::getProperty($commandController, 'output', true)->setOutput($bufferedOutput = new BufferedOutput());
 
         try {
-            $commandController->validateCommand();
+            $commandController->validateCommand(self::TEST_SITE_NAME);
         } catch (StopCommandException $e) {
         }
 
