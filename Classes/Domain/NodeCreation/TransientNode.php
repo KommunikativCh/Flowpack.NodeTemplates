@@ -6,11 +6,12 @@ use Neos\ContentRepository\Core\DimensionSpace\OriginDimensionSpacePoint;
 use Neos\ContentRepository\Core\Feature\NodeCreation\Dto\NodeAggregateIdsByNodePaths;
 use Neos\ContentRepository\Core\NodeType\NodeType;
 use Neos\ContentRepository\Core\NodeType\NodeTypeManager;
+use Neos\ContentRepository\Core\NodeType\NodeTypeName;
 use Neos\ContentRepository\Core\Projection\ContentGraph\ContentSubgraphInterface;
 use Neos\ContentRepository\Core\Projection\ContentGraph\NodePath;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeName;
-use Neos\ContentRepository\Core\SharedModel\Workspace\ContentStreamId;
+use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
 use Neos\Flow\Annotations as Flow;
 
 /**
@@ -39,7 +40,7 @@ final readonly class TransientNode
     /** @param array<string, mixed> $rawProperties */
     private function __construct(
         public NodeAggregateId $nodeAggregateId,
-        public ContentStreamId $contentStreamId,
+        public WorkspaceName $workspaceName,
         public OriginDimensionSpacePoint $originDimensionSpacePoint,
         public NodeType $nodeType,
         public NodeAggregateIdsByNodePaths $tetheredNodeAggregateIds,
@@ -57,16 +58,11 @@ final readonly class TransientNode
         $properties = [];
         $references = [];
         foreach ($rawProperties as $propertyName => $propertyValue) {
-            if (!$this->nodeType->hasProperty($propertyName)) {
-                // invalid properties will be filtered out in the PropertiesProcessor
-                $properties[$propertyName] = $propertyValue;
-                continue;
-            }
-            $declaration = $this->nodeType->getPropertyType($propertyName);
-            if ($declaration === 'reference' || $declaration === 'references') {
+            if ($this->nodeType->hasReference($propertyName)) {
                 $references[$propertyName] = $propertyValue;
                 continue;
             }
+            // invalid properties (!hasProperty) will be filtered out in the PropertiesProcessor
             $properties[$propertyName] = $propertyValue;
         }
         $this->properties = $properties;
@@ -76,7 +72,7 @@ final readonly class TransientNode
     /** @param array<string, mixed> $rawProperties */
     public static function forRegular(
         NodeAggregateId $nodeAggregateId,
-        ContentStreamId $contentStreamId,
+        WorkspaceName $workspaceName,
         OriginDimensionSpacePoint $originDimensionSpacePoint,
         NodeType $nodeType,
         NodeAggregateIdsByNodePaths $tetheredNodeAggregateIds,
@@ -86,7 +82,7 @@ final readonly class TransientNode
     ): self {
         return new self(
             $nodeAggregateId,
-            $contentStreamId,
+            $workspaceName,
             $originDimensionSpacePoint,
             $nodeType,
             $tetheredNodeAggregateIds,
@@ -103,11 +99,16 @@ final readonly class TransientNode
     {
         $nodeAggregateId = $this->tetheredNodeAggregateIds->getNodeAggregateId(NodePath::fromNodeNames($nodeName));
 
-        if (!$nodeAggregateId || !$this->nodeType->hasTetheredNode($nodeName)) {
+        $tetheredNodeTypeDefinition = $this->nodeType->tetheredNodeTypeDefinitions->get($nodeName);
+
+        if (!$nodeAggregateId || !$tetheredNodeTypeDefinition) {
             throw new \InvalidArgumentException('forTetheredChildNode only works for tethered nodes.');
         }
 
-        $childNodeType = $this->nodeTypeManager->getTypeOfTetheredNode($this->nodeType, $nodeName);
+        $childNodeType = $this->nodeTypeManager->getNodeType($tetheredNodeTypeDefinition->nodeTypeName);
+        if (!$childNodeType) {
+            throw new \InvalidArgumentException(sprintf('NodeType "%s" for tethered node "%s" does not exist.', $tetheredNodeTypeDefinition->nodeTypeName->value, $nodeName->value), 1718950833);
+        }
 
         $descendantTetheredNodeAggregateIds = NodeAggregateIdsByNodePaths::createEmpty();
         foreach ($this->tetheredNodeAggregateIds->getNodeAggregateIds() as $stringNodePath => $descendantNodeAggregateId) {
@@ -124,7 +125,7 @@ final readonly class TransientNode
 
         return new self(
             $nodeAggregateId,
-            $this->contentStreamId,
+            $this->workspaceName,
             $this->originDimensionSpacePoint,
             $childNodeType,
             $descendantTetheredNodeAggregateIds,
@@ -142,7 +143,7 @@ final readonly class TransientNode
         $tetheredNodeAggregateIds = NodeAggregateIdsByNodePaths::createForNodeType($nodeType->name, $this->nodeTypeManager);
         return new self(
             $nodeAggregateId,
-            $this->contentStreamId,
+            $this->workspaceName,
             $this->originDimensionSpacePoint,
             $nodeType,
             $tetheredNodeAggregateIds,
@@ -160,7 +161,7 @@ final readonly class TransientNode
     public function requireConstraintsImposedByAncestorsToBeMet(NodeType $childNodeType): void
     {
         if ($this->isTethered()) {
-            $this->requireNodeTypeConstraintsImposedByGrandparentToBeMet($this->tetheredParentNodeType, $this->tetheredNodeName, $childNodeType);
+            $this->requireNodeTypeConstraintsImposedByGrandparentToBeMet($this->tetheredParentNodeType->name, $this->tetheredNodeName, $childNodeType->name);
         } else {
             self::requireNodeTypeConstraintsImposedByParentToBeMet($this->nodeType, $childNodeType);
         }
@@ -180,15 +181,15 @@ final readonly class TransientNode
         }
     }
 
-    private function requireNodeTypeConstraintsImposedByGrandparentToBeMet(NodeType $grandParentNodeType, NodeName $nodeName, NodeType $nodeType): void
+    private function requireNodeTypeConstraintsImposedByGrandparentToBeMet(NodeTypeName $parentNodeTypeName, NodeName $tetheredNodeName, NodeTypeName $nodeTypeNameToCheck): void
     {
-        if (!$this->nodeTypeManager->isNodeTypeAllowedAsChildToTetheredNode($grandParentNodeType, $nodeName, $nodeType)) {
+        if (!$this->nodeTypeManager->isNodeTypeAllowedAsChildToTetheredNode($parentNodeTypeName, $tetheredNodeName, $nodeTypeNameToCheck)) {
             throw new NodeConstraintException(
                 sprintf(
                     'Node type "%s" is not allowed below tethered child nodes "%s" of nodes of type "%s"',
-                    $nodeType->name->value,
-                    $nodeName->value,
-                    $grandParentNodeType->name->value
+                    $nodeTypeNameToCheck->value,
+                    $tetheredNodeName->value,
+                    $parentNodeTypeName->value
                 ),
                 1687541480146
             );

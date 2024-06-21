@@ -22,7 +22,7 @@ use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateIds;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeName;
 use Neos\ContentRepository\Core\SharedModel\Node\ReferenceName;
-use Neos\ContentRepository\Core\SharedModel\Workspace\ContentStreamId;
+use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\I18n\Exception\InvalidLocaleIdentifierException;
 use Neos\Flow\I18n\Locale;
@@ -60,12 +60,11 @@ class NodeCreationService
      * Creates commands {@see NodeCreationCommands} for the root template and its descending configured child node templates.
      * @throws \InvalidArgumentException
      */
-    public function apply(RootTemplate $template, NodeCreationCommands $commands, NodeTypeManager $nodeTypeManager, ContentSubgraphInterface $subgraph, ProcessingErrors $processingErrors): NodeCreationCommands
+    public function apply(RootTemplate $template, NodeCreationCommands $commands, NodeTypeManager $nodeTypeManager, ContentSubgraphInterface $subgraph, NodeType $nodeType, ProcessingErrors $processingErrors): NodeCreationCommands
     {
-        $nodeType = $nodeTypeManager->getNodeType($commands->first->nodeTypeName);
         $node = TransientNode::forRegular(
             $commands->first->nodeAggregateId,
-            $commands->first->contentStreamId,
+            $commands->first->workspaceName,
             $commands->first->originDimensionSpacePoint,
             $nodeType,
             $commands->first->tetheredDescendantNodeAggregateIds,
@@ -94,7 +93,7 @@ class NodeCreationService
             $node,
             $commands->withInitialPropertyValues($initialProperties)->withAdditionalCommands(
                 ...$this->createReferencesCommands(
-                    $commands->first->contentStreamId,
+                    $commands->first->workspaceName,
                     $commands->first->nodeAggregateId,
                     $commands->first->originDimensionSpacePoint,
                     $this->referencesProcessor->processAndValidateReferences($node, $processingErrors)
@@ -107,7 +106,7 @@ class NodeCreationService
     private function applyTemplateRecursively(Templates $templates, TransientNode $parentNode, NodeCreationCommands $commands, ProcessingErrors $processingErrors): NodeCreationCommands
     {
         foreach ($templates as $template) {
-            if ($template->getName() && $parentNode->nodeType->hasTetheredNode($template->getName())) {
+            if ($template->getName() && $parentNode->nodeType->tetheredNodeTypeDefinitions->contain($template->getName())) {
                 /**
                  * Case 1: Auto created child nodes
                  */
@@ -125,7 +124,7 @@ class NodeCreationService
 
                 $commands = $commands->withAdditionalCommands(
                     SetNodeProperties::create(
-                        $parentNode->contentStreamId,
+                        $parentNode->workspaceName,
                         $node->nodeAggregateId,
                         $parentNode->originDimensionSpacePoint,
                         PropertyValuesToWrite::fromArray(
@@ -133,7 +132,7 @@ class NodeCreationService
                         )
                     ),
                     ...$this->createReferencesCommands(
-                        $parentNode->contentStreamId,
+                        $parentNode->workspaceName,
                         $node->nodeAggregateId,
                         $parentNode->originDimensionSpacePoint,
                         $this->referencesProcessor->processAndValidateReferences($node, $processingErrors)
@@ -158,14 +157,14 @@ class NodeCreationService
                 );
                 continue;
             }
-            if (!$parentNode->nodeTypeManager->hasNodeType($template->getType())) {
+
+            $nodeType = $parentNode->nodeTypeManager->getNodeType($template->getType());
+            if (!$nodeType) {
                 $processingErrors->add(
                     ProcessingError::fromException(new \RuntimeException(sprintf('Template requires type to be a valid NodeType. Got: "%s".', $template->getType()->value), 1685999795564))
                 );
                 continue;
             }
-
-            $nodeType = $parentNode->nodeTypeManager->getNodeType($template->getType());
 
             if ($nodeType->isAbstract()) {
                 $processingErrors->add(
@@ -200,7 +199,7 @@ class NodeCreationService
 
             $commands = $commands->withAdditionalCommands(
                 CreateNodeAggregateWithNode::create(
-                    $parentNode->contentStreamId,
+                    $parentNode->workspaceName,
                     $node->nodeAggregateId,
                     $template->getType(),
                     $parentNode->originDimensionSpacePoint,
@@ -209,7 +208,7 @@ class NodeCreationService
                     initialPropertyValues: $initialProperties
                 )->withTetheredDescendantNodeAggregateIds($node->tetheredNodeAggregateIds),
                 ...$this->createReferencesCommands(
-                    $parentNode->contentStreamId,
+                    $parentNode->workspaceName,
                     $node->nodeAggregateId,
                     $parentNode->originDimensionSpacePoint,
                     $this->referencesProcessor->processAndValidateReferences($node, $processingErrors)
@@ -232,12 +231,12 @@ class NodeCreationService
      * @param array<string, NodeAggregateIds> $references
      * @return list<SetNodeReferences>
      */
-    private function createReferencesCommands(ContentStreamId $contentStreamId, NodeAggregateId $nodeAggregateId, OriginDimensionSpacePoint $originDimensionSpacePoint, array $references): array
+    private function createReferencesCommands(WorkspaceName $workspaceName, NodeAggregateId $nodeAggregateId, OriginDimensionSpacePoint $originDimensionSpacePoint, array $references): array
     {
         $commands = [];
         foreach ($references as $name => $nodeAggregateIds) {
             $commands[] = SetNodeReferences::create(
-                $contentStreamId,
+                $workspaceName,
                 $nodeAggregateId,
                 $originDimensionSpacePoint,
                 ReferenceName::fromString($name),

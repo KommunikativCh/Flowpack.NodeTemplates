@@ -2,9 +2,9 @@
 
 namespace Flowpack\NodeTemplates\Tests\Functional;
 
+use Doctrine\DBAL\Connection;
 use Neos\ContentRepository\Core\ContentRepository;
-use Neos\ContentRepository\Core\Factory\ContentRepositoryId;
-use Neos\ContentRepository\Core\Infrastructure\DbalClientInterface;
+use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
 use Neos\ContentRepositoryRegistry\ContentRepositoryRegistry;
 use Neos\Flow\Configuration\ConfigurationManager;
 use Neos\Flow\ObjectManagement\ObjectManager;
@@ -57,7 +57,7 @@ trait ContentRepositoryTestTrait
             self::$wasContentRepositorySetupCalled = true;
         }
 
-        $connection = $this->objectManager->get(DbalClientInterface::class)->getConnection();
+        $connection = $this->objectManager->get(Connection::class);
 
         // reset events and projections
         $eventTableName = sprintf('cr_%s_events', $this->contentRepositoryId->value);

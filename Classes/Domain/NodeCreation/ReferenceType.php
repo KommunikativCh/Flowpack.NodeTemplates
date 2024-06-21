@@ -29,24 +29,25 @@ final class ReferenceType
     }
 
     public static function fromPropertyOfNodeType(
-        string $propertyName,
+        string $referenceName,
         NodeType $nodeType
     ): self {
-        $declaration = $nodeType->getPropertyType($propertyName);
-        if ($declaration === 'reference') {
+        if (!$nodeType->hasReference($referenceName)) {
+            throw new \DomainException(
+                sprintf(
+                    'Given reference "%s" is not declared in node type "%s".',
+                    $referenceName,
+                    $nodeType->name->value
+                ),
+                1685964955964
+            );
+        }
+
+        $maxItems = $nodeType->getReferences()[$referenceName]['constraints']['maxItems'] ?? null;
+        if ($maxItems === 1) {
             return self::reference();
         }
-        if ($declaration === 'references') {
-            return self::references();
-        }
-        throw new \DomainException(
-            sprintf(
-                'Given property "%s" is not declared as "reference" in node type "%s" and must be treated as such.',
-                $propertyName,
-                $nodeType->name->value
-            ),
-            1685964955964
-        );
+        return self::references();
     }
 
     public static function reference(): self
@@ -80,7 +81,7 @@ final class ReferenceType
             return null;
         }
         if ($referenceValue instanceof Node) {
-            return $referenceValue->nodeAggregateId;
+            return $referenceValue->aggregateId;
         }
         try {
             return NodeAggregateId::fromString($referenceValue);
@@ -114,7 +115,7 @@ final class ReferenceType
         $nodeAggregateIds = [];
         foreach ($referenceValue as $singleNodeAggregateOrId) {
             if ($singleNodeAggregateOrId instanceof Node) {
-                $nodeAggregateIds[] = $singleNodeAggregateOrId->nodeAggregateId;
+                $nodeAggregateIds[] = $singleNodeAggregateOrId->aggregateId;
                 continue;
             }
             try {

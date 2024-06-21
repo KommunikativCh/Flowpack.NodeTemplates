@@ -3,10 +3,10 @@
 namespace Flowpack\NodeTemplates\Tests\Functional;
 
 use Neos\ContentRepository\Core\ContentRepository;
+use Neos\ContentRepository\Core\Feature\SubtreeTagging\Dto\SubtreeTag;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Filter\FindReferencesFilter;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Subtree;
-use Neos\ContentRepository\Core\Projection\NodeHiddenState\NodeHiddenStateFinder;
 use Neos\Utility\ObjectAccess;
 
 trait JsonSerializeNodeTreeTrait
@@ -15,35 +15,28 @@ trait JsonSerializeNodeTreeTrait
 
     private function jsonSerializeNodeAndDescendents(Subtree $subtree): array
     {
-        $hiddenStateFinder = $this->contentRepository->projectionState(NodeHiddenStateFinder::class);
-
         $node = $subtree->node;
 
-        $subgraph = $this->contentRepository->getContentGraph()->getSubgraph(
-            $node->subgraphIdentity->contentStreamId,
-            $node->subgraphIdentity->dimensionSpacePoint,
-            $node->subgraphIdentity->visibilityConstraints
+        $subgraph = $this->contentRepository->getContentGraph($node->workspaceName)->getSubgraph(
+            $node->dimensionSpacePoint,
+            $node->visibilityConstraints
         );
 
-        $references = $subgraph->findReferences($node->nodeAggregateId, FindReferencesFilter::create());
+        $references = $subgraph->findReferences($node->aggregateId, FindReferencesFilter::create());
 
         $referencesArray = [];
         foreach ($references as $reference) {
             $referencesArray[$reference->name->value] ??= [];
             $referencesArray[$reference->name->value][] = array_filter([
-                'node' => sprintf('Node(%s, %s)', $reference->node->nodeAggregateId->value, $reference->node->nodeTypeName->value),
+                'node' => sprintf('Node(%s, %s)', $reference->node->aggregateId->value, $reference->node->nodeTypeName->value),
                 'properties' => iterator_to_array($reference->properties ?? [])
             ]);
         }
 
         return array_filter([
             'nodeTypeName' => $node->nodeTypeName,
-            'nodeName' =>  $node->classification->isTethered() ? $node->nodeName : null,
-            'isDisabled' => $hiddenStateFinder->findHiddenState(
-                $node->subgraphIdentity->contentStreamId,
-                $node->originDimensionSpacePoint->toDimensionSpacePoint(),
-                $node->nodeAggregateId
-            )->isHidden,
+            'nodeName' =>  $node->classification->isTethered() ? $node->name : null,
+            'isDisabled' => $node->tags->contain(SubtreeTag::disabled()),
             'properties' => $this->serializeValuesInArray(
                 iterator_to_array($node->properties->getIterator())
             ),
@@ -61,7 +54,7 @@ trait JsonSerializeNodeTreeTrait
             if (is_array($value)) {
                 $value = $this->serializeValuesInArray($value);
             } elseif ($value instanceof Node) {
-                $value = sprintf('Node(%s, %s)', $value->nodeAggregateId->value, $value->nodeTypeName->value);
+                $value = sprintf('Node(%s, %s)', $value->aggregateId->value, $value->nodeTypeName->value);
             } elseif ($value instanceof \JsonSerializable) {
                 $value = $value->jsonSerialize();
                 if (is_array($value)) {

@@ -9,6 +9,7 @@ use Flowpack\NodeTemplates\Domain\NodeCreation\ReferenceType;
 use Flowpack\NodeTemplates\Tests\Unit\NodeMockTrait;
 use GuzzleHttp\Psr7\Uri;
 use Neos\ContentRepository\Core\NodeType\NodeType;
+use Neos\ContentRepository\Core\NodeType\NodeTypeName;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
 use Neos\Flow\ResourceManagement\PersistentResource;
 use Neos\Media\Domain\Model\Asset;
@@ -27,8 +28,17 @@ class ReferenceTypeTest extends TestCase
      */
     public function testIsMatchedBy(string $declarationType, array $validValues, array $invalidValues): void
     {
-        $nodeTypeMock = $this->getMockBuilder(NodeType::class)->disableOriginalConstructor()->getMock();
-        $nodeTypeMock->expects(self::once())->method('getPropertyType')->with('test')->willReturn($declarationType);
+        $nodeTypeMock = new NodeType(
+            NodeTypeName::fromString('Foo:Bar'),
+            [],
+            [
+                'properties' => [
+                    'test' => [
+                        'type' => $declarationType,
+                    ]
+                ]
+            ]
+        );
         $subject = ReferenceType::fromPropertyOfNodeType(
             'test',
             $nodeTypeMock,

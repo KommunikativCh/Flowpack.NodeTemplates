@@ -9,7 +9,7 @@ use Flowpack\NodeTemplates\Domain\Template\RootTemplate;
 use Flowpack\NodeTemplates\Domain\TemplateConfiguration\TemplateConfigurationProcessor;
 use Neos\ContentRepository\Core\DimensionSpace\DimensionSpacePoint;
 use Neos\ContentRepository\Core\DimensionSpace\OriginDimensionSpacePoint;
-use Neos\ContentRepository\Core\Factory\ContentRepositoryId;
+use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
 use Neos\ContentRepository\Core\Feature\NodeCreation\Command\CreateNodeAggregateWithNode;
 use Neos\ContentRepository\Core\Feature\RootNodeCreation\Command\CreateRootNodeAggregateWithNode;
 use Neos\ContentRepository\Core\Feature\WorkspaceCreation\Command\CreateRootWorkspace;
@@ -114,34 +114,32 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
 
     private function setupContentRepository(): void
     {
-        CatchUpTriggerWithSynchronousOption::enableSynchronicityForSpeedingUpTesting();
-
         $this->initCleanContentRepository(ContentRepositoryId::fromString('node_templates'));
 
         $this->nodeTypeManager = $this->contentRepository->getNodeTypeManager();
         $this->loadFakeNodeTypes();
 
         $liveWorkspaceCommand = CreateRootWorkspace::create(
-            WorkspaceName::fromString('live'),
+            $workspaceName = WorkspaceName::fromString('live'),
             new WorkspaceTitle('Live'),
             new WorkspaceDescription('The live workspace'),
-            $contentStreamId = ContentStreamId::fromString('cs-identifier')
+            ContentStreamId::fromString('cs-identifier')
         );
 
-        $this->contentRepository->handle($liveWorkspaceCommand)->block();
+        $this->contentRepository->handle($liveWorkspaceCommand);
 
         FakeUserIdProvider::setUserId(UserId::fromString('initiating-user-identifier'));
 
         $rootNodeCommand = CreateRootNodeAggregateWithNode::create(
-            $contentStreamId,
+            $workspaceName,
             $sitesId = NodeAggregateId::fromString('sites'),
             NodeTypeName::fromString('Neos.Neos:Sites')
         );
 
-        $this->contentRepository->handle($rootNodeCommand)->block();
+        $this->contentRepository->handle($rootNodeCommand);
 
         $siteNodeCommand = CreateNodeAggregateWithNode::create(
-            $contentStreamId,
+            $workspaceName,
             $testSiteId = NodeAggregateId::fromString('test-site'),
             NodeTypeName::fromString('Flowpack.NodeTemplates:Document.HomePage'),
             OriginDimensionSpacePoint::fromDimensionSpacePoint(
@@ -151,9 +149,9 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
             nodeName: NodeName::fromString('test-site')
         );
 
-        $this->contentRepository->handle($siteNodeCommand)->block();
+        $this->contentRepository->handle($siteNodeCommand);
 
-        $this->subgraph = $this->contentRepository->getContentGraph()->getSubgraph($contentStreamId, $dimensionSpacePoint, VisibilityConstraints::withoutRestrictions());
+        $this->subgraph = $this->contentRepository->getContentGraph($workspaceName)->getSubgraph($dimensionSpacePoint, VisibilityConstraints::withoutRestrictions());
 
         $this->homePageNode = $this->subgraph->findNodeById($testSiteId);
 
@@ -211,7 +209,7 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
 
         return $this->subgraph->findNodeByPath(
             NodeName::fromString('new-node'),
-            $targetNode->nodeAggregateId
+            $targetNode->aggregateId
         );
     }
 
@@ -219,11 +217,11 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
     {
         $this->contentRepository->handle(
             CreateNodeAggregateWithNode::create(
-                $this->homePageNode->subgraphIdentity->contentStreamId,
+                $this->homePageNode->workspaceName,
                 $someNodeId = NodeAggregateId::fromString($nodeAggregateId),
                 NodeTypeName::fromString('unstructured'),
                 $this->homePageNode->originDimensionSpacePoint,
-                $this->homePageNode->nodeAggregateId,
+                $this->homePageNode->aggregateId,
                 nodeName: NodeName::fromString(uniqid('node-'))
             )
         )->block();
@@ -253,7 +251,7 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
     {
         $serializedNodes = $this->jsonSerializeNodeAndDescendents(
             $this->subgraph->findSubtree(
-                $node->nodeAggregateId,
+                $node->aggregateId,
                 FindSubtreeFilter::create(
                     nodeTypes: 'Neos.Neos:Node'
                 )

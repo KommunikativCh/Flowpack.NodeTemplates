@@ -46,13 +46,17 @@ class TemplateNodeCreationHandler implements NodeCreationHandlerInterface
     ): NodeCreationCommands {
         $nodeType = $this->contentRepository->getNodeTypeManager()
             ->getNodeType($commands->first->nodeTypeName);
+
+        if (!$nodeType) {
+            throw new \RuntimeException(sprintf('Initial NodeType "%s" does not exist anymore.', $commands->first->nodeTypeName->value), 1718950358);
+        }
+
         $templateConfiguration = $nodeType->getOptions()['template'] ?? null;
         if (!$templateConfiguration) {
             return $commands;
         }
 
-        $subgraph = $this->contentRepository->getContentGraph()->getSubgraph(
-            $commands->first->contentStreamId,
+        $subgraph = $this->contentRepository->getContentGraph($commands->first->workspaceName)->getSubgraph(
             $commands->first->originDimensionSpacePoint->toDimensionSpacePoint(),
             VisibilityConstraints::frontend()
         );
@@ -73,7 +77,7 @@ class TemplateNodeCreationHandler implements NodeCreationHandlerInterface
             return $commands;
         }
 
-        $additionalCommands = $this->nodeCreationService->apply($template, $commands, $this->contentRepository->getNodeTypeManager(), $subgraph, $processingErrors);
+        $additionalCommands = $this->nodeCreationService->apply($template, $commands, $this->contentRepository->getNodeTypeManager(), $subgraph, $nodeType, $processingErrors);
         $shouldContinue = $this->processingErrorHandler->handleAfterNodeCreation($processingErrors, $nodeType, $commands->first->nodeAggregateId);
 
         if (!$shouldContinue) {

@@ -2,16 +2,14 @@
 
 namespace Flowpack\NodeTemplates\Domain;
 
-use Neos\ContentRepository\Core\Factory\ContentRepositoryServiceFactoryDependencies;
-use Neos\ContentRepository\Core\Factory\ContentRepositoryServiceFactoryInterface;
-use Neos\ContentRepository\Core\Factory\ContentRepositoryServiceInterface;
+use Neos\ContentRepository\Core\ContentRepository;
+use Neos\Neos\Ui\Domain\NodeCreation\NodeCreationHandlerFactoryInterface;
+use Neos\Neos\Ui\Domain\NodeCreation\NodeCreationHandlerInterface;
 
-/**
- * @implements ContentRepositoryServiceFactoryInterface<TemplateNodeCreationHandler>
- */
-final class TemplateNodeCreationHandlerFactory implements ContentRepositoryServiceFactoryInterface
+final class TemplateNodeCreationHandlerFactory implements NodeCreationHandlerFactoryInterface
 {
-    public function build(ContentRepositoryServiceFactoryDependencies $serviceFactoryDependencies): ContentRepositoryServiceInterface {
-        return new TemplateNodeCreationHandler($serviceFactoryDependencies->contentRepository);
+    public function build(ContentRepository $contentRepository): NodeCreationHandlerInterface
+    {
+        return new TemplateNodeCreationHandler($contentRepository);
     }
 }
