@@ -59,8 +59,6 @@ class ChildNodesTest extends AbstractNodeTemplateTestCase
     /** @test */
     public function itMatchesSnapshot4(): void
     {
-        $this->markTestSkipped('Until https://github.com/neos/neos-development-collection/issues/4351');
-
         $createdNode = $this->createNodeInto(
             $this->homePageMainContentCollectionNode,
             'Flowpack.NodeTemplates:Content.AllowedChildNodes',
