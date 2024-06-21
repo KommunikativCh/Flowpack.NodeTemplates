@@ -10,6 +10,7 @@ use Flowpack\NodeTemplates\Domain\NodeTemplateDumper\NodeTemplateDumper;
 use Flowpack\NodeTemplates\Domain\TemplateConfiguration\TemplateConfigurationProcessor;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Cli\CommandController;
+use Neos\Neos\Domain\Service\ContentContext;
 
 class NodeTemplateCommandController extends CommandController
 {
@@ -79,6 +80,7 @@ class NodeTemplateCommandController extends CommandController
             }
             $processingErrors = ProcessingErrors::create();
 
+            /** @var ContentContext $subgraph */
             $subgraph = $this->contextFactory->create();
 
             $observableEmptyData = new class ([]) extends \ArrayObject
@@ -91,11 +93,15 @@ class NodeTemplateCommandController extends CommandController
                 }
             };
 
+            $siteNode = $subgraph->getCurrentSiteNode();
+
             $template = $this->templateConfigurationProcessor->processTemplateConfiguration(
                 $templateConfiguration,
                 [
                     'data' => $observableEmptyData,
-                    'triggeringNode' => $subgraph->getRootNode(),
+                    'triggeringNode' => $siteNode, // @deprecated
+                    'site' => $siteNode,
+                    'parentNode' => $siteNode,
                 ],
                 $processingErrors
             );
@@ -122,6 +128,9 @@ class NodeTemplateCommandController extends CommandController
         $this->outputLine(sprintf('<comment>%d of %d NodeType template validated. %d could not be build standalone.</comment>', $templatesChecked - $possiblyFaultyTemplates, $templatesChecked, $possiblyFaultyTemplates));
 
         $this->outputLine();
+
+        // sort so the result is deterministic in ci https://github.com/neos/flow-development-collection/issues/3300
+        ksort($faultyNodeTypeTemplates);
 
         $hasError = false;
         foreach ($faultyNodeTypeTemplates as $nodeTypeName => ['processingErrors' => $processingErrors, 'dataWasAccessed' => $dataWasAccessed]) {

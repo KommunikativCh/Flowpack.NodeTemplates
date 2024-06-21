@@ -62,11 +62,9 @@ class TemplateNodeCreationHandler implements NodeCreationHandlerInterface
         );
 
         $evaluationContext = [
-            // todo internal and legacy
             'data' => iterator_to_array($elements->serialized()),
-            // todo evaluate which context variables
-            'parentNode' => $subgraph->findNodeById($commands->first->parentNodeAggregateId),
-            'subgraph' => $subgraph
+            'site' => null, // todo
+            'parentNode' => $subgraph->findNodeById($commands->first->parentNodeAggregateId)
         ];
 
         $processingErrors = ProcessingErrors::create();

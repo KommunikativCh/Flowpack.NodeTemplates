@@ -159,19 +159,28 @@ because it inspires a more declarative mood. The naming is inspired by Ansible.
 
 There are several variables available in the EEL context for example.
 
-| Variable name  | Type                 | Description                                                | Availability          |
-|----------------|----------------------|------------------------------------------------------------|-----------------------|
-| data           | array<string, mixed> | Data from the node creation dialog                         | Global                |
-| triggeringNode | Node                 | The main node whose creation triggered template processing | Global                |
-| item           | mixed                | The current item inside a withItems loop                   | Inside withItems loop |
-| key            | string               | The current key inside a withItems loop                    | Inside withItems loop |
+| Variable name    | Type                   | Description                                                                   | Availability            |
+|------------------|------------------------|-------------------------------------------------------------------------------|-------------------------|
+| data             | `array<string, mixed>` | Data from the node creation dialog                                            | Global                  |
+| site             | `Node`                 | The site node in which the new node be created in                             | Global                  |
+| parentNode       | `Node`                 | The node where the new utmost node will be created inside                     | Global                  |
+| item             | `mixed`                | The current item value inside a loop                                          | Inside `withItems` loop |
+| key              | `string`               | The current item key inside a loop                                            | Inside `withItems` loop |
+
+> **Notice**
+> `triggeringNode` was removed with version 3.0. Please use `site` or `parentNode` instead.
+
+> **Warning**
+> The behaviour of `parentNode` changed from version 1.x to version 2.2
+> Previously it referenced the parent node of the current template part and its nesting.
+> With version 2.0 it was removed and 2.2 reintroduced the variable identifying the parent node of the first/utmost node that will be created.
 
 ### Additional context
 
 You can add more context variables to a template via the ``withContext`` setting. ``withContext``
 takes an arbitrary array of items whose values might also contain EEL expressions:
 
-```
+```yaml
 template:
   withContext:
     someText: '<p>foo</p>'

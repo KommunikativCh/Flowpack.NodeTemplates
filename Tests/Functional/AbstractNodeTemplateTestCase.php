@@ -9,7 +9,6 @@ use Flowpack\NodeTemplates\Domain\Template\RootTemplate;
 use Flowpack\NodeTemplates\Domain\TemplateConfiguration\TemplateConfigurationProcessor;
 use Neos\ContentRepository\Core\DimensionSpace\DimensionSpacePoint;
 use Neos\ContentRepository\Core\DimensionSpace\OriginDimensionSpacePoint;
-use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
 use Neos\ContentRepository\Core\Feature\NodeCreation\Command\CreateNodeAggregateWithNode;
 use Neos\ContentRepository\Core\Feature\RootNodeCreation\Command\CreateRootNodeAggregateWithNode;
 use Neos\ContentRepository\Core\Feature\WorkspaceCreation\Command\CreateRootWorkspace;
@@ -19,6 +18,7 @@ use Neos\ContentRepository\Core\Projection\ContentGraph\ContentSubgraphInterface
 use Neos\ContentRepository\Core\Projection\ContentGraph\Filter\FindSubtreeFilter;
 use Neos\ContentRepository\Core\Projection\ContentGraph\Node;
 use Neos\ContentRepository\Core\Projection\ContentGraph\VisibilityConstraints;
+use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeName;
 use Neos\ContentRepository\Core\SharedModel\User\UserId;
@@ -27,17 +27,13 @@ use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceDescription;
 use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
 use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceTitle;
 use Neos\ContentRepository\TestSuite\Behavior\Features\Bootstrap\Helpers\FakeUserIdProvider;
-use Neos\ContentRepositoryRegistry\Factory\ProjectionCatchUpTrigger\CatchUpTriggerWithSynchronousOption;
-use Neos\Flow\Configuration\ConfigurationManager;
 use Neos\Flow\Core\Bootstrap;
 use Neos\Flow\ObjectManagement\ObjectManagerInterface;
 use Neos\Neos\FrontendRouting\NodeAddressFactory;
 use Neos\Neos\Ui\Domain\Model\ChangeCollection;
 use Neos\Neos\Ui\Domain\Model\FeedbackCollection;
 use Neos\Neos\Ui\TypeConverter\ChangeCollectionConverter;
-use Neos\Utility\Arrays;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Yaml\Yaml;
 
 abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flows functional test case as it would reset the database afterwards
 {
@@ -45,6 +41,7 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
     use FeedbackCollectionMessagesTrait;
     use JsonSerializeNodeTreeTrait;
     use WithConfigurationTrait;
+    use FakeNodeTypeManagerTrait;
 
     use ContentRepositoryTestTrait;
 
@@ -83,27 +80,6 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
 
         $ref = new \ReflectionClass($this);
         $this->fixturesDir = dirname($ref->getFileName()) . '/Snapshots';
-    }
-
-    private function loadFakeNodeTypes(): void
-    {
-        $configuration = $this->objectManager->get(ConfigurationManager::class)->getConfiguration('NodeTypes');
-
-        $fileIterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(__DIR__ . '/Features'));
-
-        /** @var \SplFileInfo $fileInfo */
-        foreach ($fileIterator as $fileInfo) {
-            if (!$fileInfo->isFile() || $fileInfo->getExtension() !== 'yaml' || strpos($fileInfo->getBasename(), 'NodeTypes.') !== 0) {
-                continue;
-            }
-
-            $configuration = Arrays::arrayMergeRecursiveOverrule(
-                $configuration,
-                Yaml::parseFile($fileInfo->getRealPath()) ?? []
-            );
-        }
-
-        $this->nodeTypeManager->overrideNodeTypes($configuration);
     }
 
     public function tearDown(): void

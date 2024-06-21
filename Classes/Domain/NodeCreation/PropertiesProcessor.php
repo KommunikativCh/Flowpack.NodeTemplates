@@ -4,6 +4,7 @@ namespace Flowpack\NodeTemplates\Domain\NodeCreation;
 
 use Flowpack\NodeTemplates\Domain\ErrorHandling\ProcessingError;
 use Flowpack\NodeTemplates\Domain\ErrorHandling\ProcessingErrors;
+use Neos\Error\Messages\Error;
 use Neos\Flow\Property\Exception as PropertyMappingException;
 use Neos\Flow\Property\PropertyMapper;
 use Neos\Flow\Property\PropertyMappingConfiguration;
@@ -54,7 +55,11 @@ class PropertiesProcessor
                     $propertyValue = $this->propertyMapper->convert($propertyValue, $propertyType->getValue(), $propertyMappingConfiguration);
                     $messages = $this->propertyMapper->getMessages();
                     if ($messages->hasErrors()) {
-                        throw new PropertyIgnoredException($messages->getFirstError()->getMessage(), 1686779371122);
+                        // $messages->getFirstError() doesnt work see https://github.com/neos/flow-development-collection/issues/3370
+                        $flattenedErrors = $messages->getFlattenedErrors();
+                        /** @var Error $firstError */
+                        $firstError = current(current($flattenedErrors));
+                        throw new PropertyIgnoredException($firstError->getMessage(), 1686779371122);
                     }
                 }
 

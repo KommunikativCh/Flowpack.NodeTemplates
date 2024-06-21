@@ -1,0 +1,78 @@
+10 of 15 NodeType template validated. 5 could not be build standalone.
+
+Flowpack.NodeTemplates:Content.DisallowedChildNodes
+  NodeConstraintException(Node type "Flowpack.NodeTemplates:Content.Text" is not allowed below tethered child nodes "content" of nodes of type "Flowpack.NodeTemplates:Content.DisallowedChildNodes", 1687541480146)
+
+  NodeConstraintException(Node type "Flowpack.NodeTemplates:Document.Page" is not allowed for child nodes of type Flowpack.NodeTemplates:Content.DisallowedChildNodes, 1686417627173)
+
+Flowpack.NodeTemplates:Content.OnlyExceptions
+  Expression "${'left open" in "childNodes.abort.when" | EelException(The EEL expression "${'left open" was not a valid EEL expression. Perhaps you forgot to wrap it in ${...}?, 1410441849)
+
+Flowpack.NodeTemplates:Content.ResolvableProperties <b>(depends on "data" context)</b>
+  Property "asset" in NodeType "Flowpack.NodeTemplates:Content.ResolvableProperties" | PropertyIgnoredException(Object of type Neos\Media\Domain\Model\Asset with identity "c228200e-7472-4290-9936-4454a5b5692a" not found., 1686779371122)
+
+  Property "images" in NodeType "Flowpack.NodeTemplates:Content.ResolvableProperties" | PropertyIgnoredException(Object of type Neos\Media\Domain\Model\ImageInterface with identity "c8ae9f9f-dd11-4373-bf42-4bf31ec5bd19" not found., 1686779371122)
+
+  Reference "reference" in NodeType "Flowpack.NodeTemplates:Content.ResolvableProperties" | InvalidReferenceException(Node with identifier "some-node-id" does not exist., 1687632330292)
+
+  Reference "references" in NodeType "Flowpack.NodeTemplates:Content.ResolvableProperties" | InvalidReferenceException(Invalid reference value. Value `["some-node-id","other-node-id",null]` is not a valid list of nodes or node identifiers., 1685958176560)
+
+Flowpack.NodeTemplates:Content.SomeExceptions
+  Expression "${cannotCallThis()}" in "properties.foo" | NotAllowedException(Method "cannotCallThis" is not callable in untrusted context, 1369043080)
+
+  Expression "${'left open" in "properties.bar" | EelException(The EEL expression "${'left open" was not a valid EEL expression. Perhaps you forgot to wrap it in ${...}?, 1410441849)
+
+  Configuration "properties.nonEelArrayNotAllowed" | RuntimeException(Template configuration properties can only hold int|float|string|bool|null. Property "nonEelArrayNotAllowed" has type "array", 1685725310730)
+
+  Expression "${parse äüäö error}" in "childNodes.whenAbort.when" | ParserException(Expression "parse äüäö error" could not be parsed. Error starting at character 5: " äüäö error"., 1327682383)
+
+  Expression "${}" in "childNodes.withContextAbort.withContext.foo" | ParserException(Expression "" could not be parsed., 1344513194)
+
+  Expression "${Array.map()}" in "childNodes.withItemsAbort.withItems" | ArgumentCountError(Too few arguments to function Neos\Eel\Helper\ArrayHelper::map(), 0 passed and exactly 2 expected, 0)
+
+  Expression "${" in "childNodes.propertiesPartiallyWorking.properties.propertyIsExcludedFromTemplate" | EelException(The EEL expression "${" was not a valid EEL expression. Perhaps you forgot to wrap it in ${...}?, 1410441849)
+
+  Expression "${" in "childNodes.typeAbort.type" | EelException(The EEL expression "${" was not a valid EEL expression. Perhaps you forgot to wrap it in ${...}?, 1410441849)
+
+  Expression "${" in "childNodes.nameAbort.name" | EelException(The EEL expression "${" was not a valid EEL expression. Perhaps you forgot to wrap it in ${...}?, 1410441849)
+
+  Expression "${item == 1 ? cannotCallThis() : null}" in "childNodes.withItemsPartiallyWorking.name" | NotAllowedException(Method "cannotCallThis" is not callable in untrusted context, 1369043080)
+
+  Configuration "childNodes.withItemsAbortBecauseNotIterable.withItems" | RuntimeException(Type NULL is not iterable., 1685802354186)
+
+  Configuration "childNodes.invalidOption.crazy" | InvalidArgumentException(Template configuration has illegal key "crazy", 1686150349274)
+
+  Property "_hidden" in NodeType "Flowpack.NodeTemplates:Content.SomeExceptions" | PropertyIgnoredException(Because internal legacy property "_hidden" not implement., 1686149513158)
+
+  Property "_hiddenAfterDateTime" in NodeType "Flowpack.NodeTemplates:Content.SomeExceptions" | PropertyIgnoredException(Because internal legacy property "_hiddenAfterDateTime" not implement., 1686149513158)
+
+  Property "boolValue" in NodeType "Flowpack.NodeTemplates:Content.SomeExceptions" | PropertyIgnoredException(Because value `123` is not assignable to property type "boolean"., 1685958105644)
+
+  Property "stringValue" in NodeType "Flowpack.NodeTemplates:Content.SomeExceptions" | PropertyIgnoredException(Because value `false` is not assignable to property type "string"., 1685958105644)
+
+  Property "nonDeclaredProperty" in NodeType "Flowpack.NodeTemplates:Content.SomeExceptions" | PropertyIgnoredException(Because property is not declared in NodeType. Got value `"hi"`., 1685869035209)
+
+  Reference "reference" in NodeType "Flowpack.NodeTemplates:Content.SomeExceptions" | InvalidReferenceException(Node with identifier "non-existing-node-id" does not exist., 1687632330292)
+
+  Reference "references" in NodeType "Flowpack.NodeTemplates:Content.SomeExceptions" | InvalidReferenceException(Node with identifier "non-existing-node-id" does not exist., 1687632330292)
+
+  RuntimeException(Template requires type to be a non abstract NodeType. Got: "Neos.Neos:Node"., 1686417628976)
+
+  NodeConstraintException(Node type "Flowpack.NodeTemplates:Document.Page" is not allowed for child nodes of type Flowpack.NodeTemplates:Content.SomeExceptions, 1686417627173)
+
+  RuntimeException(Template requires type to be set for non auto created child nodes., 1685999829307)
+
+  RuntimeException(Template requires type to be a valid NodeType. Got: "Flowpack.NodeTemplates:InvalidNodeType"., 1685999795564)
+
+  RuntimeException(Template cant mutate type of auto created child nodes. Got: "Flowpack.NodeTemplates:Content.SomeExceptions", 1685999829307)
+
+Flowpack.NodeTemplates:Content.UnresolvableProperties
+  Property "someString" in NodeType "Flowpack.NodeTemplates:Content.UnresolvableProperties" | PropertyIgnoredException(Because value `["foo"]` is not assignable to property type "string"., 1685958105644)
+
+  Property "asset" in NodeType "Flowpack.NodeTemplates:Content.UnresolvableProperties" | PropertyIgnoredException(Object of type "Neos\Media\Domain\Model\Asset" with identity "non-existing" not found., 1686779371122)
+
+  Property "images" in NodeType "Flowpack.NodeTemplates:Content.UnresolvableProperties" | FlowException(Could not convert target type "array<Neos\Media\Domain\Model\ImageInterface>", at property path "0": No converter found which can be used to convert from "string" to "Neos\Media\Domain\Model\ImageInterface"., 1297759968) | TypeConverterException(No converter found which can be used to convert from "string" to "Neos\Media\Domain\Model\ImageInterface"., 0)
+
+  Reference "reference" in NodeType "Flowpack.NodeTemplates:Content.UnresolvableProperties" | InvalidReferenceException(Invalid reference value. Value `true` is not a valid node or node identifier., 1687632177555)
+
+  Reference "references" in NodeType "Flowpack.NodeTemplates:Content.UnresolvableProperties" | InvalidReferenceException(Node with identifier "some-non-existing-node-id" does not exist., 1687632330292)
