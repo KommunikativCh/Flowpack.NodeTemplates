@@ -65,22 +65,6 @@ jobs:
           composer require --no-update --no-interaction flowpack/nodetemplates:@dev
           composer require --dev --no-update --no-interaction phpstan/phpstan:^1.10
 
-          #
-          # PATCHES
-          #
-          composer config --no-plugins allow-plugins.cweagans/composer-patches true
-          composer require --no-update --no-interaction cweagans/composer-patches:^1.7.3
-          # the packages might have to be installed from source, so the patch works
-          patches='{
-            "neos/neos-ui": {
-              "improvedNodeCreationHandler": "https://github.com/neos/neos-ui/pull/3519.patch"
-            }
-          }'
-          composer config extra.patches --json ${patches//[[:space:]]/}
-          #
-          # PATCHES END
-          #
-
       - name: Install dependencies
         run: |
           cd ${FLOW_PATH_ROOT}
