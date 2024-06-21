@@ -48,18 +48,6 @@ class ExceptionsTest extends AbstractNodeTemplateTestCase
 
             $this->assertLastCreatedTemplateMatchesSnapshot('OnlyExceptions');
 
-            // self::assertSame([
-            //     [
-            //         'message' => 'Template for "WithOneEvaluationException" was not applied. Only Node /sites/test-site/homepage/main/new-node@live[Flowpack.NodeTemplates:Content.WithOneEvaluationException] was created.',
-            //         'severity' => 'ERROR'
-            //     ],
-            //     [
-            //         'message' => 'Expression "${\'left open" in "childNodes.abort.when" | EelException(The EEL expression "${\'left open" was not a valid EEL expression. Perhaps you forgot to wrap it in ${...}?, 1410441849)',
-            //         'severity' => 'ERROR'
-            //     ]
-            // ], $this->getMessagesOfFeedbackCollection());
-
-
             $this->assertCaughtExceptionsMatchesSnapshot('OnlyExceptions');
             $this->assertNodeDumpAndTemplateDumpMatchSnapshot('OnlyExceptions', $createdNode);
         });

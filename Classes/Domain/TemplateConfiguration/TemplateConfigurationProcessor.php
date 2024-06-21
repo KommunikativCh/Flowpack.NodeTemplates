@@ -22,8 +22,8 @@ class TemplateConfigurationProcessor
     protected $eelEvaluationService;
 
     /**
-     * @psalm-param array<string, mixed> $configuration
-     * @psalm-param array<string, mixed> $evaluationContext
+     * @param array<string, mixed> $configuration
+     * @param array<string, mixed> $evaluationContext
      * @param ProcessingErrors $caughtEvaluationExceptions
      * @return RootTemplate
      */
@@ -144,9 +144,9 @@ class TemplateConfigurationProcessor
     }
 
     /**
-     * @psalm-param mixed $rawConfigurationValue
-     * @psalm-param array<string, mixed> $evaluationContext
-     * @psalm-return mixed
+     * @param mixed $rawConfigurationValue
+     * @param array<string, mixed> $evaluationContext
+     * @return mixed
      * @throws \Neos\Eel\ParserException|\Exception
      */
     private function preprocessConfigurationValue($rawConfigurationValue, array $evaluationContext)

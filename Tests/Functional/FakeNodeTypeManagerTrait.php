@@ -7,19 +7,25 @@ namespace Flowpack\NodeTemplates\Tests\Functional;
 use Neos\ContentRepository\Core\NodeType\NodeTypeManager;
 use Neos\ContentRepositoryRegistry\Configuration\NodeTypeEnrichmentService;
 use Neos\Flow\Configuration\ConfigurationManager;
-use Neos\Flow\ObjectManagement\ObjectManagerInterface;
 use Neos\Utility\Arrays;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * @property ObjectManagerInterface $objectManager
  * @property NodeTypeManager $nodeTypeManager
  */
 trait FakeNodeTypeManagerTrait
 {
+    /**
+     * @template T of object
+     * @param class-string<T> $className
+     *
+     * @return T
+     */
+    abstract protected function getObject(string $className): object;
+
     private function loadFakeNodeTypes(): void
     {
-        $configuration = $this->objectManager->get(ConfigurationManager::class)->getConfiguration('NodeTypes');
+        $configuration = $this->getObject(ConfigurationManager::class)->getConfiguration('NodeTypes');
 
         $fileIterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(__DIR__ . '/Features'));
 

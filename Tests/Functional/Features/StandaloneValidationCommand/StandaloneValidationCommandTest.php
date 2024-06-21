@@ -69,6 +69,17 @@ final class StandaloneValidationCommandTest extends TestCase // we don't use Flo
         $this->objectManager->get(FeedbackCollection::class)->reset();
     }
 
+    /**
+     * @template T of object
+     * @param class-string<T> $className
+     *
+     * @return T
+     */
+    final protected function getObject(string $className): object
+    {
+        return $this->objectManager->get($className);
+    }
+
     private function setupContentRepository(): void
     {
         $this->initCleanContentRepository(ContentRepositoryId::fromString('node_templates'));
@@ -113,7 +124,7 @@ final class StandaloneValidationCommandTest extends TestCase // we don't use Flo
     /** @test */
     public function itMatchesSnapshot()
     {
-        $commandController = $this->objectManager->get(NodeTemplateCommandController::class);
+        $commandController = $this->getObject(NodeTemplateCommandController::class);
 
         $testSite = new Site(self::TEST_SITE_NAME);
         $testSite->setSiteResourcesPackageKey('Test.Site');
@@ -140,10 +151,5 @@ final class StandaloneValidationCommandTest extends TestCase // we don't use Flo
         self::assertSame(1, $cliResponse->getExitCode());
 
         $this->assertStringEqualsFileOrCreateSnapshot($this->fixturesDir . '/NodeTemplateValidateOutput.log', $contents);
-    }
-
-    final protected function getObject(string $className): object
-    {
-        return $this->objectManager->get($className);
     }
 }

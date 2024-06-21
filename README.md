@@ -1,12 +1,12 @@
 # Neos Node Templates
 
-When using Neos CMS as an editor, you often work with nested node structures that 
+When using Neos CMS as an editor, you often work with nested node structures that
 have to be created manually. This packages aims at easing the editing workflow by
-automatically creating helpful child nodes and making useful modifications to node 
+automatically creating helpful child nodes and making useful modifications to node
 properties when creating new nodes in the Neos UI.
 
 In contrast to child nodes that are defined in the regular node type definition
-(which cannot be removed by the editor), all modifications that are made when a 
+(which cannot be removed by the editor), all modifications that are made when a
 template is applied can be changed or removed by the editor.
 
 The desired node structure is defined in a declarative way in the NodeTypes.yaml
@@ -129,7 +129,7 @@ templates) from being applied, its most common use case is conditional child nod
 ### Loops
 
 Loops can be used to create multiple child nodes. You can use ``withItems`` to define the items
-of the loop. When using EEL, be sure to return an array. The current item is available in EEL 
+of the loop. When using EEL, be sure to return an array. The current item is available in EEL
 expressions as the ``item`` context variable.
 
 The following example creates three different text child nodes in the main content collection:
@@ -261,7 +261,7 @@ My.NodeType:Bar (depends on "data" context)
 
 The standalone validation should detect errors and prevents editors having to deal with these errors at runtime.
 
-For more complex templates, which are dependent on the node creation data, it is recommended to write separate tests. Currently, errors in templates depending on the data context will only be treated as warning, as they are probably not an issue at runtime. 
+For more complex templates, which are dependent on the node creation data, it is recommended to write separate tests. Currently, errors in templates depending on the data context will only be treated as warning, as they are probably not an issue at runtime.
 
 ## Create template from node subtree
 

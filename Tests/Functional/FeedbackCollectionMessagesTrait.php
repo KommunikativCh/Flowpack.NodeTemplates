@@ -10,10 +10,18 @@ use Neos\Utility\ObjectAccess;
 
 trait FeedbackCollectionMessagesTrait
 {
+    /**
+     * @template T of object
+     * @param class-string<T> $className
+     *
+     * @return T
+     */
+    abstract protected function getObject(string $className): object;
+
     private function getMessagesOfFeedbackCollection(): array
     {
         /** @var FeedbackInterface[] $allFeedbacks */
-        $allFeedbacks = ObjectAccess::getProperty($this->objectManager->get(FeedbackCollection::class), 'feedbacks', true);
+        $allFeedbacks = ObjectAccess::getProperty($this->getObject(FeedbackCollection::class), 'feedbacks', true);
 
         /** @var AbstractMessageFeedback[] $allFeedbacks */
         $messages = [];

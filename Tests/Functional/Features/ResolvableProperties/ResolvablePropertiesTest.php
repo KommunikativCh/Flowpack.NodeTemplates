@@ -20,17 +20,17 @@ class ResolvablePropertiesTest extends AbstractNodeTemplateTestCase
         $this->createFakeNode('some-node-id');
         $this->createFakeNode('other-node-id');
 
-        $resource = $this->objectManager->get(ResourceManager::class)->importResource(__DIR__ . '/image.png');
+        $resource = $this->getObject(ResourceManager::class)->importResource(__DIR__ . '/image.png');
 
         $asset = new Asset($resource);
         ObjectAccess::setProperty($asset, 'Persistence_Object_Identifier', 'c228200e-7472-4290-9936-4454a5b5692a', true);
-        $this->objectManager->get(AssetRepository::class)->add($asset);
+        $this->getObject(AssetRepository::class)->add($asset);
 
-        $resource2 = $this->objectManager->get(ResourceManager::class)->importResource(__DIR__ . '/image.png');
+        $resource2 = $this->getObject(ResourceManager::class)->importResource(__DIR__ . '/image.png');
 
         $image = new Image($resource2);
         ObjectAccess::setProperty($image, 'Persistence_Object_Identifier', 'c8ae9f9f-dd11-4373-bf42-4bf31ec5bd19', true);
-        $this->objectManager->get(ImageRepository::class)->add($image);
+        $this->getObject(ImageRepository::class)->add($image);
 
         $createdNode = $this->createNodeInto(
             $this->homePageMainContentCollectionNode,

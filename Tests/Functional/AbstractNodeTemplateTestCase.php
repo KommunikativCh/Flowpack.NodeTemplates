@@ -61,6 +61,7 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
 
     private string $fixturesDir;
 
+    /** @deprecated please use {@see self::getObject()} instead */
     protected ObjectManagerInterface $objectManager;
 
     public function setUp(): void
@@ -68,9 +69,9 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
         $this->objectManager = Bootstrap::$staticObjectManager;
 
         $this->setupContentRepository();
-        $this->nodeTemplateDumper = $this->objectManager->get(NodeTemplateDumper::class);
+        $this->nodeTemplateDumper = $this->getObject(NodeTemplateDumper::class);
 
-        $templateFactory = $this->objectManager->get(TemplateConfigurationProcessor::class);
+        $templateFactory = $this->getObject(TemplateConfigurationProcessor::class);
 
         $templateFactoryMock = $this->getMockBuilder(TemplateConfigurationProcessor::class)->disableOriginalConstructor()->getMock();
         $templateFactoryMock->expects(self::once())->method('processTemplateConfiguration')->willReturnCallback(function (...$args) use($templateFactory) {
@@ -86,8 +87,19 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
 
     public function tearDown(): void
     {
-        $this->objectManager->get(FeedbackCollection::class)->reset();
+        $this->getObject(FeedbackCollection::class)->reset();
         $this->objectManager->forgetInstance(TemplateConfigurationProcessor::class);
+    }
+
+    /**
+     * @template T of object
+     * @param class-string<T> $className
+     *
+     * @return T
+     */
+    final protected function getObject(string $className): object
+    {
+        return $this->objectManager->get($className);
     }
 
     private function setupContentRepository(): void
@@ -244,10 +256,5 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
         $yamlTemplateWithoutOriginNodeTypeName = '\'{nodeTypeName}\'' . substr($dumpedYamlTemplate, strlen($node->nodeTypeName->value) + 2);
 
         $this->assertStringEqualsFileOrCreateSnapshot($this->fixturesDir . '/' . $snapShotName . '.yaml', $yamlTemplateWithoutOriginNodeTypeName);
-    }
-
-    final protected function getObject(string $className): object
-    {
-        return $this->objectManager->get($className);
     }
 }

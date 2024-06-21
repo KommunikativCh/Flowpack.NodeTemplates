@@ -18,7 +18,7 @@ trait WithConfigurationTrait
      */
     private function withMockedConfigurationSettings(array $additionalSettings, callable $fn): void
     {
-        $configurationManager = $this->objectManager->get(ConfigurationManager::class);
+        $configurationManager = $this->getObject(ConfigurationManager::class);
         $configurationManagerMock = $this->getMockBuilder(ConfigurationManager::class)->disableOriginalConstructor()->getMock();
         $mockedSettings = Arrays::arrayMergeRecursiveOverrule($configurationManager->getConfiguration('Settings'), $additionalSettings);
         $configurationManagerMock->expects(self::any())->method('getConfiguration')->willReturnCallback(function (string $configurationType, string $configurationPath = null) use($configurationManager, $mockedSettings) {
