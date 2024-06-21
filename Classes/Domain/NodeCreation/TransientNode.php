@@ -39,7 +39,7 @@ final readonly class TransientNode
 
     /** @param array<string, mixed> $rawProperties */
     private function __construct(
-        public NodeAggregateId $nodeAggregateId,
+        public NodeAggregateId $aggregateId,
         public WorkspaceName $workspaceName,
         public OriginDimensionSpacePoint $originDimensionSpacePoint,
         public NodeType $nodeType,

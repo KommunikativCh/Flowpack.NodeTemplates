@@ -126,10 +126,11 @@ class NodeTemplateCommandController extends CommandController
             VisibilityConstraints::frontend()
         );
 
-        $siteNode = $subgraph->findNodeByAbsolutePath(AbsoluteNodePath::fromRootNodeTypeNameAndRelativePath(
-            NodeTypeNameFactory::forSites(),
-            NodePath::fromNodeNames($siteInstance->getNodeName()->toNodeName())
-        ));
+        $sitesNode = $subgraph->findRootNodeByType(NodeTypeNameFactory::forSites());
+        $siteNode = $sitesNode ? $subgraph->findNodeByPath(
+            $siteInstance->getNodeName()->toNodeName(),
+            $sitesNode->aggregateId
+        ) : null;
 
         if (!$siteNode) {
             $this->outputLine(sprintf('<error>Could not resolve site node for site "%s".</error>', $siteInstance->getNodeName()->value));

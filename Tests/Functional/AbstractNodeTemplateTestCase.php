@@ -203,7 +203,7 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
                 $this->homePageNode->aggregateId,
                 nodeName: NodeName::fromString(uniqid('node-'))
             )
-        )->block();
+        );
 
         return $this->subgraph->findNodeById($someNodeId);
     }

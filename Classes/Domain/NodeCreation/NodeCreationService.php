@@ -139,7 +139,7 @@ class NodeCreationService
                 $commands = $commands->withAdditionalCommands(
                     SetNodeProperties::create(
                         $parentNode->workspaceName,
-                        $node->nodeAggregateId,
+                        $node->aggregateId,
                         $parentNode->originDimensionSpacePoint,
                         PropertyValuesToWrite::fromArray(
                             $this->propertiesProcessor->processAndValidateProperties($node, $processingErrors)
@@ -147,7 +147,7 @@ class NodeCreationService
                     ),
                     ...$this->createReferencesCommands(
                         $parentNode->workspaceName,
-                        $node->nodeAggregateId,
+                        $node->aggregateId,
                         $parentNode->originDimensionSpacePoint,
                         $this->referencesProcessor->processAndValidateReferences($node, $processingErrors)
                     )
@@ -214,16 +214,16 @@ class NodeCreationService
             $commands = $commands->withAdditionalCommands(
                 CreateNodeAggregateWithNode::create(
                     $parentNode->workspaceName,
-                    $node->nodeAggregateId,
+                    $node->aggregateId,
                     $template->getType(),
                     $parentNode->originDimensionSpacePoint,
-                    $parentNode->nodeAggregateId,
+                    $parentNode->aggregateId,
                     nodeName: $nodeName,
                     initialPropertyValues: $initialProperties
                 )->withTetheredDescendantNodeAggregateIds($node->tetheredNodeAggregateIds),
                 ...$this->createReferencesCommands(
                     $parentNode->workspaceName,
-                    $node->nodeAggregateId,
+                    $node->aggregateId,
                     $parentNode->originDimensionSpacePoint,
                     $this->referencesProcessor->processAndValidateReferences($node, $processingErrors)
                 )
