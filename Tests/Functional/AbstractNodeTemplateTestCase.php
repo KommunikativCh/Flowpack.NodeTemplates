@@ -7,6 +7,7 @@ namespace Flowpack\NodeTemplates\Tests\Functional;
 use Flowpack\NodeTemplates\Domain\NodeTemplateDumper\NodeTemplateDumper;
 use Flowpack\NodeTemplates\Domain\Template\RootTemplate;
 use Flowpack\NodeTemplates\Domain\TemplateConfiguration\TemplateConfigurationProcessor;
+use Neos\Behat\FlowEntitiesTrait;
 use Neos\ContentRepository\Core\DimensionSpace\DimensionSpacePoint;
 use Neos\ContentRepository\Core\DimensionSpace\OriginDimensionSpacePoint;
 use Neos\ContentRepository\Core\Feature\NodeCreation\Command\CreateNodeAggregateWithNode;
@@ -35,13 +36,14 @@ use Neos\Neos\Ui\Domain\Model\FeedbackCollection;
 use Neos\Neos\Ui\TypeConverter\ChangeCollectionConverter;
 use PHPUnit\Framework\TestCase;
 
-abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flows functional test case as it would reset the database afterwards
+abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flows functional test case as it would reset the database afterwards (see FlowEntitiesTrait)
 {
     use SnapshotTrait;
     use FeedbackCollectionMessagesTrait;
     use JsonSerializeNodeTreeTrait;
     use WithConfigurationTrait;
     use FakeNodeTypeManagerTrait;
+    use FlowEntitiesTrait;
 
     use ContentRepositoryTestTrait;
 
@@ -91,6 +93,7 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
     private function setupContentRepository(): void
     {
         $this->initCleanContentRepository(ContentRepositoryId::fromString('node_templates'));
+        $this->truncateAndSetupFlowEntities();
 
         $this->nodeTypeManager = $this->contentRepository->getNodeTypeManager();
         $this->loadFakeNodeTypes();
@@ -241,5 +244,10 @@ abstract class AbstractNodeTemplateTestCase extends TestCase // we don't use Flo
         $yamlTemplateWithoutOriginNodeTypeName = '\'{nodeTypeName}\'' . substr($dumpedYamlTemplate, strlen($node->nodeTypeName->value) + 2);
 
         $this->assertStringEqualsFileOrCreateSnapshot($this->fixturesDir . '/' . $snapShotName . '.yaml', $yamlTemplateWithoutOriginNodeTypeName);
+    }
+
+    final protected function getObject(string $className): object
+    {
+        return $this->objectManager->get($className);
     }
 }

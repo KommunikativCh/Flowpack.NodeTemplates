@@ -8,6 +8,7 @@ use Flowpack\NodeTemplates\Application\Command\NodeTemplateCommandController;
 use Flowpack\NodeTemplates\Tests\Functional\ContentRepositoryTestTrait;
 use Flowpack\NodeTemplates\Tests\Functional\FakeNodeTypeManagerTrait;
 use Flowpack\NodeTemplates\Tests\Functional\SnapshotTrait;
+use Neos\Behat\FlowEntitiesTrait;
 use Neos\ContentRepository\Core\DimensionSpace\DimensionSpacePoint;
 use Neos\ContentRepository\Core\DimensionSpace\OriginDimensionSpacePoint;
 use Neos\ContentRepository\Core\Feature\NodeCreation\Command\CreateNodeAggregateWithNode;
@@ -35,11 +36,12 @@ use Neos\Utility\ObjectAccess;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\BufferedOutput;
 
-final class StandaloneValidationCommandTest extends TestCase // we don't use Flows functional test case as it would reset the database afterwards
+final class StandaloneValidationCommandTest extends TestCase // we don't use Flows functional test case as it would reset the database afterwards (see FlowEntitiesTrait)
 {
     use SnapshotTrait;
     use ContentRepositoryTestTrait;
     use FakeNodeTypeManagerTrait;
+    use FlowEntitiesTrait;
 
     /**
      * Matching configuration in Neos.Neos.sites.node-templates-site
@@ -70,6 +72,7 @@ final class StandaloneValidationCommandTest extends TestCase // we don't use Flo
     private function setupContentRepository(): void
     {
         $this->initCleanContentRepository(ContentRepositoryId::fromString('node_templates'));
+        $this->truncateAndSetupFlowEntities();
 
         $this->nodeTypeManager = $this->contentRepository->getNodeTypeManager();
         $this->loadFakeNodeTypes();
@@ -137,5 +140,10 @@ final class StandaloneValidationCommandTest extends TestCase // we don't use Flo
         self::assertSame(1, $cliResponse->getExitCode());
 
         $this->assertStringEqualsFileOrCreateSnapshot($this->fixturesDir . '/NodeTemplateValidateOutput.log', $contents);
+    }
+
+    final protected function getObject(string $className): object
+    {
+        return $this->objectManager->get($className);
     }
 }

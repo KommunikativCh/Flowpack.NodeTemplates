@@ -7,39 +7,29 @@ use Neos\ContentRepository\Core\ContentRepository;
 use Neos\ContentRepository\Core\SharedModel\ContentRepository\ContentRepositoryId;
 use Neos\ContentRepositoryRegistry\ContentRepositoryRegistry;
 use Neos\Flow\Configuration\ConfigurationManager;
-use Neos\Flow\ObjectManagement\ObjectManager;
-use Neos\Flow\Persistence\Doctrine\PersistenceManager;
+use Neos\Flow\ObjectManagement\ObjectManagerInterface;
 
-/**
- * @property ObjectManager $objectManager
- */
 trait ContentRepositoryTestTrait
 {
     private readonly ContentRepository $contentRepository;
 
     private readonly ContentRepositoryId $contentRepositoryId;
 
-    private static bool $persistenceWasSetup = false;
-
     private static bool $wasContentRepositorySetupCalled = false;
+
+    /**
+     * @template T of object
+     * @param class-string<T> $className
+     *
+     * @return T
+     */
+    abstract protected function getObject(string $className): object;
 
     private function initCleanContentRepository(ContentRepositoryId $contentRepositoryId): void
     {
-        if (!self::$persistenceWasSetup) {
-            // TODO super hacky and as we never clean up !!!
-            $persistenceManager = $this->objectManager->get(PersistenceManager::class);
-            if (is_callable([$persistenceManager, 'compile'])) {
-                $result = $persistenceManager->compile();
-                if ($result === false) {
-                    self::markTestSkipped('Test skipped because setting up the persistence failed.');
-                }
-            }
-            self::$persistenceWasSetup = true;
-        }
-
         $this->contentRepositoryId = $contentRepositoryId;
 
-        $configurationManager = $this->objectManager->get(ConfigurationManager::class);
+        $configurationManager = $this->getObject(ConfigurationManager::class);
         $registrySettings = $configurationManager->getConfiguration(
             ConfigurationManager::CONFIGURATION_TYPE_SETTINGS,
             'Neos.ContentRepositoryRegistry'
@@ -47,7 +37,7 @@ trait ContentRepositoryTestTrait
 
         $contentRepositoryRegistry = new ContentRepositoryRegistry(
             $registrySettings,
-            $this->objectManager
+            $this->getObject(ObjectManagerInterface::class)
         );
 
         $this->contentRepository = $contentRepositoryRegistry->get($this->contentRepositoryId);
@@ -57,7 +47,7 @@ trait ContentRepositoryTestTrait
             self::$wasContentRepositorySetupCalled = true;
         }
 
-        $connection = $this->objectManager->get(Connection::class);
+        $connection = $this->getObject(Connection::class);
 
         // reset events and projections
         $eventTableName = sprintf('cr_%s_events', $this->contentRepositoryId->value);
