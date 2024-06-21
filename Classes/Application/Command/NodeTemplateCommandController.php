@@ -57,8 +57,9 @@ class NodeTemplateCommandController extends CommandController
      * Dump the node tree structure into a NodeTemplate YAML structure.
      * References to Nodes and non-primitive property values are commented out in the YAML.
      *
-     * @param string $startingNodeId specified root node of the node tree
-     * @param string $workspaceName
+     * @param string $startingNodeId specified root node of the node tree.
+     * @param string|null $site the Neos site, which determines the content repository. Defaults to the first available one.
+     * @param string $workspaceName custom workspace to dump from. Defaults to 'live'.
      * @return void
      */
     public function createFromNodeSubtreeCommand(string $startingNodeId, ?string $site = null, string $workspaceName = 'live'): void
@@ -95,6 +96,7 @@ class NodeTemplateCommandController extends CommandController
      *
      * We process and build all configured NodeType templates. No nodes will be created in the Content Repository.
      *
+     * @param string|null $site the Neos site, which determines the content repository. Defaults to the first available one.
      */
     public function validateCommand(?string $site = null): void
     {

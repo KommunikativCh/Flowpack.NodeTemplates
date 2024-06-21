@@ -239,15 +239,18 @@ It behaves similar with properties: In case a property value doesn't match its d
 It might be tedious to validate that all your templates are working especially in a larger project. To validate the ones that are not dependent on data from the node creation dialog (less complex templates) you can utilize this command:
 
 ```sh
-flow nodetemplate:validate
+flow nodetemplate:validate [<options>]
 ```
+
+**options:**
+- `--site`: the Neos site, which determines the content repository. Defaults to the first available one.
 
 In case everything is okay it will succeed with `X NodeType templates validated.`.
 
 But in case you either have a syntax error in your template or the template does not match the node structure (illegal properties) you will be warned:
 
 ```
-76 of 78 NodeType template validated. 2 could not be build standalone.
+Content repository "default": 76 of 78 NodeType template validated. 2 could not be build standalone.
 
 My.NodeType:Bing
  Property "someLegacyProperty" in NodeType "My.NodeType:Bing" | PropertyIgnoredException(Because property is not declared in NodeType. Got value `"bg-gray-100"`., 1685869035209)
@@ -266,8 +269,14 @@ When creating a more complex node template (to create multiple pages and content
 For this case you can use the command:
 
 ```sh
-flow nodeTemplate:createFromNodeSubtree <nodeIdentifier>
+flow nodeTemplate:createFromNodeSubtree <starting node id> [<options>]
 ```
+
+- `--starting-node-id`: specified root node of the node tree
+
+**options:**
+- `--site`: the Neos site, which determines the content repository. Defaults to the first available one.
+- `--workspace-name`: custom workspace to dump from. Defaults to 'live'.
 
 It will give you the output similar to the yaml example above.
 References to Nodes and non-primitive property values are commented out in the YAML.
