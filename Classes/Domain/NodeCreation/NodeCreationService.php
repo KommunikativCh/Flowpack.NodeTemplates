@@ -21,6 +21,7 @@ use Neos\ContentRepository\Core\Projection\ContentGraph\ContentSubgraphInterface
 use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateId;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeAggregateIds;
 use Neos\ContentRepository\Core\SharedModel\Node\NodeName;
+use Neos\ContentRepository\Core\SharedModel\Node\PropertyName;
 use Neos\ContentRepository\Core\SharedModel\Node\ReferenceName;
 use Neos\ContentRepository\Core\SharedModel\Workspace\WorkspaceName;
 use Neos\Flow\Annotations as Flow;
@@ -73,13 +74,26 @@ class NodeCreationService
             $template->getProperties()
         );
 
+        $propertyValuesToWrite = PropertyValuesToWrite::fromArray(
+            $this->propertiesProcessor->processAndValidateProperties($node, $processingErrors)
+        );
+
+        if (count($defaultPropertiesToUnset = iterator_to_array($propertyValuesToWrite->getPropertiesToUnset()))) {
+            // FIXME workaround for https://github.com/neos/neos-development-collection/issues/5154
+            $setDefaultPropertiesToNull = SetNodeProperties::create(
+                $commands->first->workspaceName,
+                $commands->first->nodeAggregateId,
+                $commands->first->originDimensionSpacePoint,
+                PropertyValuesToWrite::fromArray(
+                    array_fill_keys(array_map(fn (PropertyName $name) => $name->value, $defaultPropertiesToUnset), null)
+                )
+            );
+            $commands = $commands->withAdditionalCommands($setDefaultPropertiesToNull);
+        }
+
         $initialProperties = $commands->first->initialPropertyValues;
 
-        $initialProperties = $initialProperties->merge(
-            PropertyValuesToWrite::fromArray(
-                $this->propertiesProcessor->processAndValidateProperties($node, $processingErrors)
-            )
-        );
+        $initialProperties = $initialProperties->merge($propertyValuesToWrite);
 
         $initialProperties = $this->ensureNodeHasUriPathSegment(
             $nodeType,
