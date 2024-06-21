@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Flowpack\NodeTemplates\Tests\Functional;
 
 use Neos\ContentRepository\Core\NodeType\NodeTypeManager;
+use Neos\ContentRepositoryRegistry\Configuration\NodeTypeEnrichmentService;
 use Neos\Flow\Configuration\ConfigurationManager;
 use Neos\Flow\ObjectManagement\ObjectManagerInterface;
 use Neos\Utility\Arrays;
@@ -34,6 +35,11 @@ trait FakeNodeTypeManagerTrait
             );
         }
 
-        $this->nodeTypeManager->overrideNodeTypes($configuration);
+        $this->nodeTypeManager->overrideNodeTypes(
+            // hack, we use the service here to expand the `i18n` magic label
+            $this->objectManager->get(NodeTypeEnrichmentService::class)->enrichNodeTypeLabelsConfiguration(
+                $configuration
+            )
+        );
     }
 }

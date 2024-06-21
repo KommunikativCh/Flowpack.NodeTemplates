@@ -53,16 +53,6 @@ final class PropertyType
         NodeType $nodeType
     ): self {
         $declaration = $nodeType->getPropertyType($propertyName);
-        if ($declaration === 'reference' || $declaration === 'references') {
-            throw new \DomainException(
-                sprintf(
-                    'Given property "%s" is declared as "reference" in node type "%s" and must be treated as such.',
-                    $propertyName,
-                    $nodeType->name->value
-                ),
-                1685964835205
-            );
-        }
         $type = self::tryFromString($declaration);
         if (!$type) {
             throw new \DomainException(

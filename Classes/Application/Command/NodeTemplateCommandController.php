@@ -61,19 +61,32 @@ class NodeTemplateCommandController extends CommandController
      * @param string $workspaceName
      * @return void
      */
-    public function createFromNodeSubtreeCommand(string $startingNodeId, string $workspaceName = 'live'): void
+    public function createFromNodeSubtreeCommand(string $startingNodeId, ?string $site = null, string $workspaceName = 'live'): void
     {
-        throw new \BadMethodCallException('Not implemented.');
-        /*
-        $subgraph = $this->contextFactory->create([
-            'workspaceName' => $workspaceName
-        ]);
-        $node = $subgraph->getNodeByIdentifier($startingNodeId);
+        $siteInstance = $site
+            ? $this->siteRepository->findOneByNodeName($site)
+            : $this->siteRepository->findDefault();
+
+        if (!$siteInstance) {
+            $this->outputLine(sprintf('<error>Site "%s" does not exist.</error>', $site));
+            $this->quit(2);
+        }
+
+        $siteConfiguration = $siteInstance->getConfiguration();
+
+        $contentRepository = $this->contentRepositoryRegistry->get($siteConfiguration->contentRepositoryId);
+
+        // default context? https://github.com/neos/neos-development-collection/issues/5113
+        $subgraph = $contentRepository->getContentGraph(WorkspaceName::fromString($workspaceName))->getSubgraph(
+            $siteConfiguration->defaultDimensionSpacePoint,
+            VisibilityConstraints::frontend()
+        );
+
+        $node = $subgraph->findNodeById(NodeAggregateId::fromString($startingNodeId));
         if (!$node) {
             throw new \InvalidArgumentException("Node $startingNodeId doesnt exist in workspace $workspaceName.");
         }
-        echo $this->nodeTemplateDumper->createNodeTemplateYamlDumpFromSubtree($node);
-        */
+        echo $this->nodeTemplateDumper->createNodeTemplateYamlDumpFromSubtree($node, $contentRepository);
     }
 
     /**
