@@ -7,8 +7,10 @@ use Flowpack\NodeTemplates\Domain\ErrorHandling\ProcessingErrorHandler;
 use Flowpack\NodeTemplates\Domain\NodeCreation\NodeCreationService;
 use Flowpack\NodeTemplates\Domain\TemplateConfiguration\TemplateConfigurationProcessor;
 use Neos\ContentRepository\Core\ContentRepository;
+use Neos\ContentRepository\Core\Projection\ContentGraph\Filter\FindClosestNodeFilter;
 use Neos\ContentRepository\Core\Projection\ContentGraph\VisibilityConstraints;
 use Neos\Flow\Annotations as Flow;
+use Neos\Neos\Domain\Service\NodeTypeNameFactory;
 use Neos\Neos\Ui\Domain\NodeCreation\NodeCreationCommands;
 use Neos\Neos\Ui\Domain\NodeCreation\NodeCreationElements;
 use Neos\Neos\Ui\Domain\NodeCreation\NodeCreationHandlerInterface;
@@ -63,7 +65,7 @@ class TemplateNodeCreationHandler implements NodeCreationHandlerInterface
 
         $evaluationContext = [
             'data' => iterator_to_array($elements->serialized()),
-            'site' => null, // todo
+            'site' => $subgraph->findClosestNode($commands->first->parentNodeAggregateId, FindClosestNodeFilter::create(NodeTypeNameFactory::NAME_SITE)),
             'parentNode' => $subgraph->findNodeById($commands->first->parentNodeAggregateId)
         ];
 

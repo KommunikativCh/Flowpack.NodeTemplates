@@ -58,7 +58,7 @@ class PropertiesProcessor
                         // $messages->getFirstError() doesnt work see https://github.com/neos/flow-development-collection/issues/3370
                         $flattenedErrors = $messages->getFlattenedErrors();
                         /** @var Error $firstError */
-                        $firstError = current(current($flattenedErrors));
+                        $firstError = current(current($flattenedErrors) ?: []);
                         throw new PropertyIgnoredException($firstError->getMessage(), 1686779371122);
                     }
                 }
